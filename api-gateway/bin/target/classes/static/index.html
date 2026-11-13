@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EShoppingZone - Spring Boot Microservices E-Commerce</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand" onclick="switchView('storefront')">
+                <i class="fa-solid fa-bag-shopping brand-icon"></i>
+                <span class="brand-name">EShopping<span>Zone</span></span>
+            </div>
+
+            <!-- Global View Switcher Tabs -->
+            <div class="nav-portal-tabs" id="portalTabs">
+                <button class="portal-tab active" id="tabStorefront" onclick="switchView('storefront')">
+                    <i class="fa-solid fa-store"></i> Store
+                </button>
+                <button class="portal-tab" id="tabMerchant" style="display:none;" onclick="switchView('merchant')">
+                    <i class="fa-solid fa-chart-line"></i> Merchant Portal
+                </button>
+                <button class="portal-tab" id="tabAdmin" style="display:none;" onclick="switchView('admin')">
+                    <i class="fa-solid fa-shield-halved"></i> Admin Panel
+                </button>
+            </div>
+
+            <div class="search-bar" id="navSearchBar">
+                <input type="text" id="searchInput" placeholder="Search products, books, electronics..." onkeypress="if(event.key==='Enter') searchProducts()">
+                <button onclick="searchProducts()"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+
+            <div class="nav-actions">
+                <button class="nav-btn" id="walletNavBtn" onclick="openWalletModal()">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="navWallet">Wallet: ₹0.00</span>
+                </button>
+
+                <button class="nav-btn cart-btn" id="cartNavBtn" onclick="openCartModal()">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>Cart</span>
+                    <span class="badge" id="cartCount">0</span>
+                </button>
+
+                <button class="nav-btn" id="ordersNavBtn" onclick="openOrdersModal()">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    <span>My Orders</span>
+                </button>
+
+                <button class="nav-btn notif-btn" onclick="openNotificationsModal()">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Alerts</span>
+                    <span class="badge" id="notifBadge" style="display:none;">0</span>
+                </button>
+
+                <!-- Auth Buttons for Guest -->
+                <div id="authGuest" class="auth-buttons">
+                    <button class="btn btn-outline" onclick="openAuthModal('login')"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</button>
+                    <button class="btn btn-primary" onclick="openAuthModal('register')"><i class="fa-solid fa-user-plus"></i> Register</button>
+                </div>
+
+                <!-- User Profile Dropdown -->
+                <div id="authUser" class="auth-buttons" style="display:none;">
+                    <div class="user-dropdown">
+                        <button class="btn btn-user" onclick="toggleUserMenu()">
+                            <i class="fa-solid fa-circle-user"></i>
+                            <span id="userNameDisplay">User</span>
+                            <span class="role-badge" id="userRoleBadge">CUSTOMER</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div id="userMenu" class="dropdown-menu">
+                            <div class="dropdown-header">
+                                <strong id="userEmailDisplay">user@example.com</strong>
+                                <span class="role-tag" id="userRoleTag">CUSTOMER</span>
+                            </div>
+                            <hr>
+                            <a href="javascript:void(0)" onclick="openProfileModal()"><i class="fa-solid fa-id-card"></i> My Profile</a>
+                            <a href="javascript:void(0)" id="menuMerchantLink" style="display:none;" onclick="switchView('merchant')"><i class="fa-solid fa-shop"></i> Merchant Dashboard</a>
+                            <a href="javascript:void(0)" id="menuAdminLink" style="display:none;" onclick="switchView('admin')"><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</a>
+                            <hr>
+                            <a href="javascript:void(0)" onclick="logout()" class="text-danger"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Microservices Status Bar -->
+    <div class="microservices-bar">
+        <div class="microservices-inner">
+            <span class="ms-pill"><i class="fa-solid fa-network-wired"></i> Eureka: 8761</span>
+            <span class="ms-pill"><i class="fa-solid fa-route"></i> Gateway: 8080</span>
+            <span class="ms-pill"><i class="fa-solid fa-user-shield"></i> Profile: 8081</span>
+            <span class="ms-pill"><i class="fa-solid fa-box-open"></i> Product: 8082</span>
+            <span class="ms-pill"><i class="fa-solid fa-cart-shopping"></i> Cart: 8083</span>
+            <span class="ms-pill"><i class="fa-solid fa-receipt"></i> Order: 8084</span>
+            <span class="ms-pill"><i class="fa-solid fa-wallet"></i> Wallet: 8085</span>
+            <span class="ms-pill"><i class="fa-brands fa-raspberry-pi"></i> RabbitMQ: 5672</span>
+            <span class="ms-pill"><i class="fa-solid fa-bell"></i> Notification: 8086</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: CUSTOMER STOREFRONT VIEW                                          -->
+    <!-- ========================================================================= -->
+    <div id="viewStorefront" class="app-view active">
+        <!-- Category Filter Strip -->
+        <div class="category-strip">
+            <button class="cat-pill active" onclick="filterCategory('')"><i class="fa-solid fa-border-all"></i> All Products</button>
+            <button class="cat-pill" onclick="filterCategory('Electronics')"><i class="fa-solid fa-laptop"></i> Electronics</button>
+            <button class="cat-pill" onclick="filterCategory('Books')"><i class="fa-solid fa-book"></i> Books</button>
+            <button class="cat-pill" onclick="filterCategory('Apparel')"><i class="fa-solid fa-shirt"></i> Apparel</button>
+            <button class="cat-pill" onclick="filterCategory('Personal Care')"><i class="fa-solid fa-pump-soap"></i> Personal Care</button>
+        </div>
+
+        <main class="main-content">
+            <section class="products-section">
+                <div class="section-header">
+                    <div>
+                        <h2 id="sectionTitle">Explore Products</h2>
+                        <p class="section-subtitle">Browse products, add to cart, and checkout seamlessly</p>
+                    </div>
+                    <span id="productCount" class="product-badge">Loading...</span>
+                </div>
+
+                <!-- Product Grid -->
+                <div id="productGrid" class="product-grid">
+                    <!-- Dynamic Product Cards -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 2: MERCHANT DASHBOARD VIEW                                           -->
+    <!-- ========================================================================= -->
+    <div id="viewMerchant" class="app-view">
+        <main class="main-content">
+            <div class="dashboard-header">
+                <div>
+                    <h2><i class="fa-solid fa-shop"></i> Merchant Center</h2>
+                    <p class="text-muted">Track store revenue, manage product inventory, and fulfill customer orders</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddProductModal('merchant')">
+                    <i class="fa-solid fa-plus"></i> Add New Product
+                </button>
+            </div>
+
+            <!-- Merchant Revenue KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card revenue-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div class="kpi-info">
+                        <span>Total Earned Revenue</span>
+                        <h3 id="merchantTotalRevenue">₹0.00</h3>
+                        <small class="text-success"><i class="fa-solid fa-circle-check"></i> Paid & Delivered orders</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card pending-rev-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                    <div class="kpi-info">
+                        <span>Pending Revenue</span>
+                        <h3 id="merchantPendingRevenue">₹0.00</h3>
+                        <small class="text-warning"><i class="fa-solid fa-truck"></i> In transit / processing</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-box-archive"></i></div>
+                    <div class="kpi-info">
+                        <span>Total Units Sold</span>
+                        <h3 id="merchantUnitsSold">0</h3>
+                        <small>Items ordered by customers</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-dolly"></i></div>
+                    <div class="kpi-info">
+                        <span>Completed Orders</span>
+                        <h3 id="merchantCompletedOrders">0</h3>
+                        <small>Fulfilled successfully</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merchant Tabs -->
+            <div class="sub-nav-tabs">
+                <button class="sub-tab active" id="tabMerchantOrders" onclick="switchMerchantTab('orders')">
+                    <i class="fa-solid fa-clipboard-list"></i> Received Orders (<span id="merchantOrderCount">0</span>)
+                </button>
+                <button class="sub-tab" id="tabMerchantProducts" onclick="switchMerchantTab('products')">
+                    <i class="fa-solid fa-boxes-stacked"></i> My Products (<span id="merchantProdCount">0</span>)
+                </button>
+            </div>
+
+            <!-- Merchant Orders Panel -->
+            <div id="merchantOrdersPanel" class="tab-pane active">
+                <div class="order-status-filters">
+                    <button class="filter-pill active" onclick="filterMerchantOrders('ALL')">All Orders</button>
+                    <button class="filter-pill" onclick="filterMerchantOrders('PENDING')"><i class="fa-solid fa-clock"></i> Pending (Placed / COD)</button>
+                    <button class="filter-pill" onclick="filterMerchantOrders('ONGOING')"><i class="fa-solid fa-truck"></i> Ongoing (Confirmed / Shipped)</button>
+                    <button class="filter-pill" onclick="filterMerchantOrders('COMPLETED')"><i class="fa-solid fa-circle-check"></i> Completed (Delivered)</button>
+                    <button class="filter-pill" onclick="filterMerchantOrders('CANCELLED')"><i class="fa-solid fa-ban"></i> Cancelled</button>
+                </div>
+
+                <div id="merchantOrdersList" class="orders-table-wrapper">
+                    <!-- Merchant Orders Dynamic Table -->
+                </div>
+            </div>
+
+            <!-- Merchant Products Panel -->
+            <div id="merchantProductsPanel" class="tab-pane">
+                <div id="merchantProductsList" class="products-table-wrapper">
+                    <!-- Merchant Products Dynamic Table -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 3: ADMIN DASHBOARD VIEW                                              -->
+    <!-- ========================================================================= -->
+    <div id="viewAdmin" class="app-view">
+        <main class="main-content">
+            <div class="dashboard-header">
+                <div>
+                    <h2><i class="fa-solid fa-shield-halved"></i> Super Admin Control Center</h2>
+                    <p class="text-muted">Manage system users, merchants, global product catalog, orders, and real-time audit logs</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="openCreateUserModal()">
+                        <i class="fa-solid fa-user-plus"></i> Create User / Merchant
+                    </button>
+                    <button class="btn btn-primary" onclick="openAddProductModal('admin')">
+                        <i class="fa-solid fa-plus"></i> Add Product
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin System KPIs -->
+            <div class="kpi-grid admin-kpis">
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+                    <div class="kpi-info">
+                        <span>Total Customers</span>
+                        <h3 id="adminCustomerCount">0</h3>
+                        <small>Active user accounts</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-store"></i></div>
+                    <div class="kpi-info">
+                        <span>Total Merchants</span>
+                        <h3 id="adminMerchantCount">0</h3>
+                        <small>Registered sellers</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-boxes-packing"></i></div>
+                    <div class="kpi-info">
+                        <span>Catalog Products</span>
+                        <h3 id="adminProductCount">0</h3>
+                        <small>Across all merchants</small>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fa-solid fa-receipt"></i></div>
+                    <div class="kpi-info">
+                        <span>Total System Orders</span>
+                        <h3 id="adminOrderCount">0</h3>
+                        <small>Total GMV: <strong id="adminTotalGMV">₹0.00</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Sub-Navigation Tabs -->
+            <div class="sub-nav-tabs">
+                <button class="sub-tab active" id="tabAdminUsers" onclick="switchAdminTab('users')">
+                    <i class="fa-solid fa-users-gear"></i> User & Merchant Management
+                </button>
+                <button class="sub-tab" id="tabAdminProducts" onclick="switchAdminTab('products')">
+                    <i class="fa-solid fa-boxes-stacked"></i> All Products Inventory
+                </button>
+                <button class="sub-tab" id="tabAdminOrders" onclick="switchAdminTab('orders')">
+                    <i class="fa-solid fa-receipt"></i> All System Orders
+                </button>
+                <button class="sub-tab" id="tabAdminAudit" onclick="switchAdminTab('audit')">
+                    <i class="fa-solid fa-timeline"></i> Live System Audit Logs
+                </button>
+            </div>
+
+            <!-- Admin Tab 1: User & Merchant Management -->
+            <div id="adminUsersPanel" class="tab-pane active">
+                <div class="table-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="adminUserSearch" placeholder="Search by name, email, phone, or role..." oninput="filterAdminUsers()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="adminRoleFilter" onchange="filterAdminUsers()" class="form-control">
+                            <option value="">All Roles</option>
+                            <option value="CUSTOMER">Customers</option>
+                            <option value="MERCHANT">Merchants</option>
+                            <option value="ADMIN">Admins</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="adminUsersList" class="table-responsive">
+                    <!-- Admin Users Table -->
+                </div>
+            </div>
+
+            <!-- Admin Tab 2: All Products Inventory -->
+            <div id="adminProductsPanel" class="tab-pane">
+                <div class="table-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="adminProductSearch" placeholder="Search products by title or merchant..." oninput="filterAdminProducts()">
+                    </div>
+                </div>
+                <div id="adminProductsList" class="table-responsive">
+                    <!-- Admin Products Table -->
+                </div>
+            </div>
+
+            <!-- Admin Tab 3: All System Orders -->
+            <div id="adminOrdersPanel" class="tab-pane">
+                <div class="table-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="adminOrderSearch" placeholder="Filter by Order ID, User ID, or Payment Status..." oninput="filterAdminOrders()">
+                    </div>
+                </div>
+                <div id="adminOrdersList" class="table-responsive">
+                    <!-- Admin Orders Table -->
+                </div>
+            </div>
+
+            <!-- Admin Tab 4: Live System Audit Logs -->
+            <div id="adminAuditPanel" class="tab-pane">
+                <div class="table-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="adminAuditSearch" placeholder="Search audit actions, emails, or entities..." oninput="filterAdminAudit()">
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="loadAuditLogs()"><i class="fa-solid fa-rotate"></i> Refresh Logs</button>
+                </div>
+                <div id="adminAuditList" class="audit-timeline">
+                    <!-- Audit Logs Timeline Feed -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODALS & DIALOGS                                                          -->
+    <!-- ========================================================================= -->
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-shopping"></i> My Shopping Cart</h3>
+                <button class="close-btn" onclick="closeModal('cartModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="cartItemsContainer">
+                    <p class="empty-msg">Your cart is currently empty.</p>
+                </div>
+                <div class="cart-summary" id="cartSummary" style="display:none;">
+                    <div class="summary-row">
+                        <span>Total Items:</span>
+                        <span id="cartSummaryCount">0</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>Grand Total:</span>
+                        <span id="cartGrandTotal">₹0.00</span>
+                    </div>
+                    <div class="cart-actions">
+                        <button class="btn btn-danger" onclick="clearCart()"><i class="fa-solid fa-trash"></i> Clear Cart</button>
+                        <button class="btn btn-success btn-checkout" onclick="openCheckoutModal()"><i class="fa-solid fa-bag-shopping"></i> Proceed to Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-credit-card"></i> Complete Checkout</h3>
+                <button class="close-btn" onclick="closeModal('checkoutModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="checkout-box">
+                    <h4>Order Total: <span id="checkoutAmount" class="highlight-price">₹0.00</span></h4>
+                    
+                    <div class="form-group">
+                        <label>Shipping / Delivery Address:</label>
+                        <textarea id="shippingAddress" rows="3" class="form-control" placeholder="Enter complete shipping address with city and pin code"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Payment Method:</label>
+                        <div class="payment-options">
+                            <label class="payment-card">
+                                <input type="radio" name="paymentMethod" value="WALLET" checked onchange="updatePaymentMethodInfo()">
+                                <div class="payment-content">
+                                    <strong><i class="fa-solid fa-wallet"></i> Instant Wallet Payment</strong>
+                                    <p>Available Balance: <span id="checkoutWalletBalance">₹0.00</span></p>
+                                </div>
+                            </label>
+                            <label class="payment-card">
+                                <input type="radio" name="paymentMethod" value="COD" onchange="updatePaymentMethodInfo()">
+                                <div class="payment-content">
+                                    <strong><i class="fa-solid fa-hand-holding-dollar"></i> Cash on Delivery (COD)</strong>
+                                    <p>Pay upon package delivery at your doorstep</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="walletWarning" class="alert alert-warning" style="display:none;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Insufficient wallet balance! Please add funds in My Wallet or select Cash on Delivery.
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-lg" id="placeOrderBtn" onclick="submitOrder()">
+                        <i class="fa-solid fa-check"></i> Confirm & Place Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Tracking & History Modal -->
+    <div id="ordersModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-truck-fast"></i> My Orders & Live Tracking</h3>
+                <button class="close-btn" onclick="closeModal('ordersModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="ordersContainer">
+                    <p class="empty-msg">No orders placed yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Live Tracking Detailed Modal -->
+    <div id="trackingDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="trackingOrderTitle"><i class="fa-solid fa-location-dot"></i> Order Tracking #0</h3>
+                <button class="close-btn" onclick="closeModal('trackingDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="trackingTimelineContent">
+                    <!-- Tracking Steps injected dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet & Transactions Modal -->
+    <div id="walletModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-wallet"></i> My Digital Wallet</h3>
+                <button class="close-btn" onclick="closeModal('walletModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="wallet-balance-card">
+                    <div>
+                        <span class="balance-title">Available Balance</span>
+                        <h2 id="walletBalanceBig">₹0.00</h2>
+                    </div>
+                    <div class="add-money-form">
+                        <input type="number" id="addMoneyInput" placeholder="Amount (e.g. 5000)" min="1">
+                        <button class="btn btn-success" onclick="addMoney()"><i class="fa-solid fa-plus"></i> Add Money</button>
+                    </div>
+                </div>
+
+                <h4><i class="fa-solid fa-clock-rotate-left"></i> Transaction Ledger</h4>
+                <div id="transactionsList" class="transactions-list">
+                    <p class="empty-msg">No transactions recorded yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Inbox Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-bell"></i> Notifications & Order Alerts</h3>
+                <button class="close-btn" onclick="closeModal('notificationsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="notificationsList" class="notif-feed">
+                    <p class="empty-msg">No notifications yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Login / Register) -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="authModalTitle">Sign in to EShoppingZone</h3>
+                <button class="close-btn" onclick="closeModal('authModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tabs">
+                    <button class="tab-btn active" id="loginTabBtn" onclick="switchAuthTab('login')">Login</button>
+                    <button class="tab-btn" id="registerTabBtn" onclick="switchAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="customer@gmail.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+                    </div>
+                    <div class="quick-credentials">
+                        <small>⚡ Quick Fill Logins: 
+                            <a href="javascript:void(0)" onclick="fillCredentials('customer@gmail.com', 'customer123')">Customer</a> | 
+                            <a href="javascript:void(0)" onclick="fillCredentials('merchant@gmail.com', 'merchant123')">Merchant</a> |
+                            <a href="javascript:void(0)" onclick="fillCredentials('admin@gmail.com', 'admin123')">Admin</a>
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg mt-3">Sign In</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="regName" class="form-control" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="regEmail" class="form-control" placeholder="user@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password (minimum 6 characters)</label>
+                        <input type="password" id="regPassword" class="form-control" placeholder="••••••" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="regPhone" class="form-control" placeholder="9876543210">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="regAddress" class="form-control" rows="2" placeholder="123 Main Street, City"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Account Role</label>
+                        <select id="regRole" class="form-control">
+                            <option value="CUSTOMER">Customer</option>
+                            <option value="MERCHANT">Merchant</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg mt-3">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-id-card"></i> Edit Profile</h3>
+                <button class="close-btn" onclick="closeModal('profileModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleUpdateProfile(event)">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="profName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email (Read-only)</label>
+                        <input type="email" id="profEmail" class="form-control" readonly disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="profPhone" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="profAddress" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Create/Edit Modal (For Merchant and Admin) -->
+    <div id="productEditModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="productModalTitle"><i class="fa-solid fa-box"></i> Add New Product</h3>
+                <button class="close-btn" onclick="closeModal('productEditModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleSaveProduct(event)">
+                    <input type="hidden" id="prodEditId">
+                    <input type="hidden" id="prodContext">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="prodName" class="form-control" placeholder="e.g. iPhone 15 Pro" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="prodCategory" class="form-control" required>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Books">Books</option>
+                                <option value="Apparel">Apparel</option>
+                                <option value="Personal Care">Personal Care</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Price (₹) *</label>
+                            <input type="number" id="prodPrice" step="0.01" min="1" class="form-control" placeholder="1999" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Quantity *</label>
+                            <input type="number" id="prodStock" min="0" class="form-control" placeholder="50" required>
+                        </div>
+                    </div>
+                    <div class="grid-2" id="adminMerchantSelectRow" style="display:none;">
+                        <div class="form-group">
+                            <label>Merchant Owner ID</label>
+                            <input type="number" id="prodMerchantId" class="form-control" placeholder="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Merchant Name</label>
+                            <input type="text" id="prodMerchantName" class="form-control" placeholder="Alice Merchant">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL</label>
+                        <input type="url" id="prodImage" class="form-control" placeholder="https://images.unsplash.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label>Product Description</label>
+                        <textarea id="prodDesc" class="form-control" rows="3" placeholder="Enter full specifications and features"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="saveProdBtn">Save Product</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('productEditModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Create/Edit User Modal -->
+    <div id="adminUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="adminUserModalTitle"><i class="fa-solid fa-user-gear"></i> Create User / Merchant</h3>
+                <button class="close-btn" onclick="closeModal('adminUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleAdminSaveUser(event)">
+                    <input type="hidden" id="adminUserEditId">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="adminUserName" class="form-control" placeholder="Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address *</label>
+                        <input type="email" id="adminUserEmail" class="form-control" placeholder="user@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="adminUserPasswordLabel">Password *</label>
+                        <input type="password" id="adminUserPassword" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="adminUserPhone" class="form-control" placeholder="9876543210">
+                        </div>
+                        <div class="form-group">
+                            <label>Role *</label>
+                            <select id="adminUserRole" class="form-control" required>
+                                <option value="CUSTOMER">CUSTOMER</option>
+                                <option value="MERCHANT">MERCHANT</option>
+                                <option value="ADMIN">ADMIN</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="adminUserAddress" class="form-control" rows="2" placeholder="Full address"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Save User Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

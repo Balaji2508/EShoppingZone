@@ -1,0 +1,8 @@
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\config\RabbitMQConfig.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\consumer\OrderEventConsumer.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\controller\NotificationController.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\dto\NotificationRequest.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\dto\NotificationResponse.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\dto\OrderPlacedEvent.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\dto\OrderStatusChangedEvent.java
+D:\E-ShoppingZone\notification-service\src\main\java\com\eshoppingzone\notification\NotificationServiceApplication.java

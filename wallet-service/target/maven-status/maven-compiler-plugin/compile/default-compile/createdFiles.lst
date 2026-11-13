@@ -1,0 +1,17 @@
+com\eshoppingzone\wallet\entity\WalletTransaction.class
+com\eshoppingzone\wallet\repository\WalletTransactionRepository.class
+com\eshoppingzone\wallet\dto\WalletResponse.class
+com\eshoppingzone\wallet\config\DataSeeder.class
+com\eshoppingzone\wallet\dto\WalletPaymentRequest.class
+com\eshoppingzone\wallet\service\WalletService.class
+com\eshoppingzone\wallet\exception\GlobalExceptionHandler.class
+com\eshoppingzone\wallet\exception\ResourceNotFoundException.class
+com\eshoppingzone\wallet\WalletServiceApplication.class
+com\eshoppingzone\wallet\dto\TransactionResponse.class
+com\eshoppingzone\wallet\controller\WalletController.class
+com\eshoppingzone\wallet\entity\Wallet.class
+com\eshoppingzone\wallet\repository\WalletRepository.class
+com\eshoppingzone\wallet\exception\BadRequestException.class
+com\eshoppingzone\wallet\dto\AddMoneyRequest.class
+com\eshoppingzone\wallet\service\impl\WalletServiceImpl.class
+com\eshoppingzone\wallet\exception\ErrorResponse.class

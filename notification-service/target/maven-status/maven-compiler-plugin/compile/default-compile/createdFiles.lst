@@ -1,0 +1,8 @@
+com\eshoppingzone\notification\dto\NotificationRequest.class
+com\eshoppingzone\notification\config\RabbitMQConfig.class
+com\eshoppingzone\notification\dto\OrderStatusChangedEvent.class
+com\eshoppingzone\notification\NotificationServiceApplication.class
+com\eshoppingzone\notification\consumer\OrderEventConsumer.class
+com\eshoppingzone\notification\controller\NotificationController.class
+com\eshoppingzone\notification\dto\NotificationResponse.class
+com\eshoppingzone\notification\dto\OrderPlacedEvent.class
